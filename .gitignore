@@ -1,0 +1,10 @@
+# Packaged extension archives
+*.zip
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*~
+
+# Compiled translations (keep .po, ignore generated .mo if added later)
+*.mo

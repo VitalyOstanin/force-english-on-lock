@@ -1,0 +1,9 @@
+{
+  "uuid": "force-english-on-lock@VitalyOstanin",
+  "name": "Force English On Lock",
+  "description": "Activates the first input source (English) whenever the lock screen appears, so the password field is always on the English layout. Per-window layout in the normal session is preserved.",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "session-modes": ["user", "unlock-dialog"],
+  "url": "https://github.com/VitalyOstanin/force-english-on-lock",
+  "version-name": "1.0"
+}
