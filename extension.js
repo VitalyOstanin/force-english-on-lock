@@ -13,8 +13,7 @@ export default class ForceEnglishOnLock extends Extension {
   // GSettings "current" key does not reflect the active layout).
   _forceFirstSource() {
     const ism = getInputSourceManager();
-    const sources = ism ? ism.inputSources : null;
-    const first = sources && sources[0];
+    const first = ism?.inputSources?.[0];
 
     if (first) first.activate(false);
   }
@@ -47,7 +46,7 @@ export default class ForceEnglishOnLock extends Extension {
         let sourceId = 0;
         sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
           this._sources.delete(sourceId);
-          if (this._shield && this._shield.active) this._forceFirstSource();
+          if (this._shield?.active) this._forceFirstSource();
           return GLib.SOURCE_REMOVE;
         });
         this._sources.add(sourceId);
