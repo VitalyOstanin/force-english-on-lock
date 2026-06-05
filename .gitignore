@@ -8,3 +8,5 @@
 
 # Compiled translations (keep .po, ignore generated .mo if added later)
 *.mo
+# project-check reports (local only)
+docs/reviews/
