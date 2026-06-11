@@ -55,6 +55,11 @@ export default class ForceEnglishOnLock extends Extension {
   }
 
   disable() {
+    // This extension declares the "unlock-dialog" session mode (metadata.json)
+    // so it stays active on the lock screen, which is the whole point: it sets
+    // the input source when the lock screen appears. disable() below fully
+    // disconnects every signal and removes every pending timeout, so nothing
+    // keeps running once the extension is no longer active in the session mode.
     if (this._shield && this._handlers) {
       for (const id of this._handlers) this._shield.disconnect(id);
     }
