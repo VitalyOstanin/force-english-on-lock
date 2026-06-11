@@ -19,27 +19,34 @@ export default class ForceEnglishOnLock extends Extension {
   }
 
   enable() {
-    this._handlers = [];
     this._sources = new Set();
     this._shield = Main.screenShield;
 
     if (!this._shield) return;
 
+    // Signals are tracked with connectObject owned by `this`; disable() drops
+    // them all with a single disconnectObject(this), so no signal-id bookkeeping
+    // is needed. The two connects are kept separate so that if lock-screen-shown
+    // is absent on a given version, active-changed is still tracked.
+
     // active-changed fires on lock (active=true) and on unlock (active=false).
     // Only force English when the lock screen appears, never on unlock, so the
     // user's layout after unlocking is left alone. active-changed is present on
     // every supported GNOME version and is the reliable primary hook.
-    this._handlers.push(
-      this._shield.connect("active-changed", () => {
+    this._shield.connectObject(
+      "active-changed",
+      () => {
         if (this._shield.active) this._forceFirstSource();
-      }),
+      },
+      this,
     );
 
     // lock-screen-shown is the exact moment the lock screen is shown; it refines
     // the timing. It is absent on some versions (the connect is then simply a
     // no-op), so it must not be the only hook.
-    this._handlers.push(
-      this._shield.connect("lock-screen-shown", () => {
+    this._shield.connectObject(
+      "lock-screen-shown",
+      () => {
         this._forceFirstSource();
         // Re-apply once after focus has settled on the lock screen, in case a
         // late per-window focus event re-activates the previous layout.
@@ -50,7 +57,8 @@ export default class ForceEnglishOnLock extends Extension {
           return GLib.SOURCE_REMOVE;
         });
         this._sources.add(sourceId);
-      }),
+      },
+      this,
     );
   }
 
@@ -60,10 +68,7 @@ export default class ForceEnglishOnLock extends Extension {
     // the input source when the lock screen appears. disable() below fully
     // disconnects every signal and removes every pending timeout, so nothing
     // keeps running once the extension is no longer active in the session mode.
-    if (this._shield && this._handlers) {
-      for (const id of this._handlers) this._shield.disconnect(id);
-    }
-    this._handlers = null;
+    this._shield?.disconnectObject(this);
     this._shield = null;
 
     if (this._sources) {
