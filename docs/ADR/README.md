@@ -14,3 +14,5 @@ This directory records the technical decisions made for the
 | [0004](0004-uuid-namespace.md)                           | Use `@VitalyOstanin` as the uuid namespace             | Accepted |
 | [0005](0005-resource-cleanup-on-disable.md)              | Track and release all resources on disable             | Accepted |
 | [0006](0006-support-gnome-45-to-50.md)                   | Declare and verify support for GNOME 45-50             | Accepted |
+| [0007](0007-drop-user-session-mode.md)                   | Drop the `user` session mode, run only in `unlock-dialog` | Accepted |
+| [0008](0008-restore-pre-lock-layout-on-unlock.md)        | Restore the pre-lock layout on unlock                  | Accepted |

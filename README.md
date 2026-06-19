@@ -95,14 +95,28 @@ against new GNOME Shell versions.
   - `lock-screen-shown` — the exact moment the lock screen is shown; activate
     again and schedule a single re-apply ~250 ms later in case a late
     per-window focus event re-activates the previous layout.
+  - On `enable()` itself — force once immediately (with the same ~250 ms
+    re-apply). In `unlock-dialog`-only mode `enable()` runs when the lock screen
+    appears and may run after the shield already emitted the signals above, so
+    it must not rely on them alone.
 - The activation calls `getInputSourceManager().inputSources[0].activate(false)`,
   which switches the layout through gnome-shell's real input source manager.
-- `metadata.json` declares `"session-modes": ["user", "unlock-dialog"]` so the
-  extension keeps running on the lock screen (extensions are otherwise disabled
-  there); see
-  [docs/ADR/0002-run-on-lock-screen-session-mode.md](docs/ADR/0002-run-on-lock-screen-session-mode.md).
-- `disable()` disconnects every signal handler and removes the pending timeout
-  source.
+- `metadata.json` declares `"session-modes": ["unlock-dialog"]` so the extension
+  runs only on the lock screen (extensions are otherwise disabled there). The
+  shell calls `enable()` when the lock screen appears, so `enable()` forces the
+  layout once on entry in addition to the signal handlers; see
+  [docs/ADR/0002-run-on-lock-screen-session-mode.md](docs/ADR/0002-run-on-lock-screen-session-mode.md)
+  and
+  [docs/ADR/0007-drop-user-session-mode.md](docs/ADR/0007-drop-user-session-mode.md).
+- Before the first force, `enable()` records the layout that was active just
+  before the lock screen appeared.
+- `disable()` (called on unlock, when the session leaves `unlock-dialog`)
+  disconnects every signal handler, removes the pending timeout source, and
+  re-activates the recorded pre-lock layout. The latter is needed because the
+  lock screen keeps the work window focused, so forcing English also overwrites
+  that window's per-window layout; restoring it returns the user to their
+  previous layout. See
+  [docs/ADR/0008-restore-pre-lock-layout-on-unlock.md](docs/ADR/0008-restore-pre-lock-layout-on-unlock.md).
 
 ## Limitations
 

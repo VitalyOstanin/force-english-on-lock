@@ -15,11 +15,33 @@ export default class ForceEnglishOnLock extends Extension {
     if (first) first.activate(false);
   }
 
+  // Force now, then re-apply after focus settles, in case a late per-window
+  // focus event re-activates the previous layout.
+  _forceWithRetry() {
+    this._forceFirstSource();
+
+    let sourceId = 0;
+    sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
+      this._sources.delete(sourceId);
+      if (this._shield?.active) this._forceFirstSource();
+      return GLib.SOURCE_REMOVE;
+    });
+    this._sources.add(sourceId);
+  }
+
   enable() {
     this._sources = new Set();
     this._shield = Main.screenShield;
 
     if (!this._shield) return;
+
+    // Remember the layout active before the lock screen appeared. The lock
+    // screen does not change global.display.focus_window, so forcing the first
+    // source below also overwrites the per-window layout of the still-focused
+    // work window (activate() runs _changePerWindowSource for focus_window).
+    // disable() re-activates this source on unlock to restore that window.
+    const ism = getInputSourceManager();
+    this._restoreSource = ism?.currentSource ?? null;
 
     // Two separate connects so active-changed still works if lock-screen-shown
     // is absent on a given version. Force only on lock (active=true), not unlock.
@@ -35,25 +57,21 @@ export default class ForceEnglishOnLock extends Extension {
     // must not be the only hook.
     this._shield.connectObject(
       "lock-screen-shown",
-      () => {
-        this._forceFirstSource();
-        // Re-apply after focus settles, in case a late per-window focus event
-        // re-activates the previous layout.
-        let sourceId = 0;
-        sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
-          this._sources.delete(sourceId);
-          if (this._shield?.active) this._forceFirstSource();
-          return GLib.SOURCE_REMOVE;
-        });
-        this._sources.add(sourceId);
-      },
+      () => this._forceWithRetry(),
       this,
     );
+
+    // Running only in the "unlock-dialog" session mode, enable() itself signals
+    // that the lock screen is appearing. The shield may already have emitted
+    // active-changed / lock-screen-shown before this async enable() ran (e.g. an
+    // idle fade without animation), so force once here instead of relying solely
+    // on the signals above.
+    this._forceWithRetry();
   }
 
   disable() {
-    // Runs in the "unlock-dialog" session mode; disconnect all signals and drop
-    // pending timeouts so nothing keeps running once disabled.
+    // Runs on unlock (the session leaves "unlock-dialog"); disconnect all
+    // signals and drop pending timeouts so nothing keeps running once disabled.
     this._shield?.disconnectObject(this);
     this._shield = null;
 
@@ -61,6 +79,14 @@ export default class ForceEnglishOnLock extends Extension {
       for (const id of this._sources) GLib.Source.remove(id);
       this._sources.clear();
       this._sources = null;
+    }
+
+    // Restore the pre-lock layout: re-activating it rewrites the per-window
+    // source of the now-focused work window back from English, so the user
+    // returns to the layout they had before locking.
+    if (this._restoreSource) {
+      this._restoreSource.activate(false);
+      this._restoreSource = null;
     }
   }
 }

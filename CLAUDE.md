@@ -46,7 +46,7 @@ list in sync and re-verify each entry against every declared version.
 | manager `inputSources` getter                 | gnome-shell | returns the sorted list of `InputSource`           |
 | `InputSource.activate(interactive)`           | gnome-shell | switches the active layout via the manager         |
 | `GLib.timeout_add` / `PRIORITY_DEFAULT` / `SOURCE_REMOVE` / `Source.remove` | GLib | stable |
-| `"session-modes": ["user", "unlock-dialog"]`  | gnome-shell | metadata; keeps the extension enabled while locked |
+| `"session-modes": ["unlock-dialog"]`          | gnome-shell | metadata; extension runs only on the lock screen, `enable()` is called when it appears |
 
 Verified present on `gnome-45`..`gnome-50`. Exception: the
 `emit('lock-screen-shown')` call was not found on the `gnome-46` branch of
@@ -65,6 +65,13 @@ or control it. The unlock dialog inherits the focused window's source. Only
 `InputSource.activate()` — going through the real in-shell manager — affects the
 lock screen. See
 [docs/ADR/0001-force-via-input-source-manager.md](docs/ADR/0001-force-via-input-source-manager.md).
+
+Side effect: the lock screen keeps the work window focused
+(`global.display.focus_window` is unchanged while locked), so `activate()` runs
+`_changePerWindowSource()` for that window and overwrites its per-window layout
+with English. `enable()` records `currentSource` before forcing and `disable()`
+re-activates it on unlock to restore the work window. See
+[docs/ADR/0008-restore-pre-lock-layout-on-unlock.md](docs/ADR/0008-restore-pre-lock-layout-on-unlock.md).
 
 ## Procedure: verify against a GNOME version
 
